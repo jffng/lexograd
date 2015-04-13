@@ -22,7 +22,7 @@
 # 4th Floor
 # New York, NY 10003
 
-from py.client import ClarifaiApi
+from Clarifai_py.client import ClarifaiApi
 import random
 from random import choice as rc
 from random import sample as rs

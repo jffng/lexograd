@@ -1,3 +1,9 @@
+1. instagram api to clarifai returning set of tags
+2. make it web accessible
+3. set up conceptnet DB
+4. start working on the grammar
+
+
 lexograph /ˈleksəʊɡɹɑːf/ (n.) 
 A text document generated from digital image data
 
