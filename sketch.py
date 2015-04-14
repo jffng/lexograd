@@ -1,6 +1,7 @@
 from clarifai.client import ClarifaiApi
 from instagram.client import InstagramAPI
-import json, re
+from bs4 import BeautifulSoup
+import json, re, requests
 
 creds = json.load(open('configuration.json'))
 
@@ -24,7 +25,7 @@ def getInstagrams():
 
 def extractTags(image_urls):
 	# imgFiles = [open(SYSPATH+fn) for fn in filenames]
-	data = api.tag_image_urls(image_urls[5])
+	data = api.tag_image_urls(image_urls[8])
 
 	# for f in imgFiles:
 	# 	f.close()
@@ -40,7 +41,18 @@ def extractTags(image_urls):
 	return sorted(tags_probs, key=lambda x: x[1])
 
 urls = getInstagrams()
-
 sorted_tags = extractTags(urls)
 
-print sorted_tags
+copy = []
+
+for i in range(len(sorted_tags)):
+	# url = "https://www.google.com/search?q=travel"
+	url = "https://www.google.com/search?q=" + str(sorted_tags[i][0])
+	r = requests.get(url)
+	data = r.text
+	soup = BeautifulSoup(data)
+	ad = soup.find('span', 'ac')
+	if ad != None:
+		copy.append(ad)
+
+print copy
