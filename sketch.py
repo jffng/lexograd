@@ -1,7 +1,7 @@
 from clarifai.client import ClarifaiApi
 from instagram.client import InstagramAPI
 from bs4 import BeautifulSoup
-import json, re, requests, logging, urllib2, random
+import json, re, requests, logging, urllib2, random, unirest
 from flask import Flask, Response, request, send_file
 from flask.ext.cors import CORS
 
@@ -19,29 +19,28 @@ api = ClarifaiApi() # Assumes environmental variables have been set
 exclamation = re.compile('^(.*?)\!')
 period = re.compile('^(.*?)\.')
 
-def getInstagrams(lex):
-	access_token = creds['ig_token']
-	ig_api = InstagramAPI(access_token=access_token)
-	liked_media, next_ = ig_api.user_liked_media()
+def getInstagrams():
+        ig_response = unirest.get("https://api.instagram.com/v1/users/self/media/liked",
+                headers={
+                    "Accept":"text/plain"
+                    },
+                params={
+                    'access_token': creds['ig_token'],
+                    'count': 100
+                })
 
-	imagedir = '/root/lexograd/photosynthesis/static/assets/images/'
+        links = []
 
-        media = liked_media[random.randint(0, len(liked_media)-1)]
-        try:
-                url = re.sub('\Image:\s', '', str(media.images['standard_resolution']))
-                print url
-                # f = urllib2.urlopen(url)
-                # data = f.read()
-                # with open(imagedir + media.id + '.jpg', 'wb') as code:
-                        # code.write(data)
-                lex.append(Lexograd(url))
-        except AttributeError:
-                pass
+        for d in ig_response.body['data']:
+             links.append(d['images']['standard_resolution']['url'])
+
+        return links
 
 class Lexograd():
 	def __init__(self, url):
 		self.url = url
 		self.tags = None
+                self.logo = None
 
 	def extractTags(self):
 		# imgFiles = [open(SYSPATH+fn) for fn in filenames]
@@ -67,18 +66,28 @@ class Lexograd():
 			r = requests.get(url)
 			data = r.text
 			soup = BeautifulSoup(data)
-			title = soup.find('cite')
-                        if title != None:
-                                title = str(title)
-                                title = title.replace('<cite>','')
-                                title = title.replace('</cite>','')
-                                title = title.replace('<b>','')
-                                title = title.replace('</b>','')
-                                self.title = title
-
                         ad = soup.find('span', 'ac')
-
                         if ad != None:
+                                title = ad.find_previous('cite')
+                                if title != None:
+                                        title = str(title)
+                                        title = title.replace('<cite>','')
+                                        title = title.replace('</cite>','')
+                                        title = title.replace('<b>','')
+                                        title = title.replace('</b>','')
+                                        title = title.split('.')
+                                        self.title = title[1]
+                                        print self.title
+                                        try:
+                                                logo_url = "http://www.brandsoftheworld.com/logo/" + str(self.title) + "?original=1"
+                                                print logo_url
+                                                r = requests.get(logo_url)
+                                                logo_soup = BeautifulSoup(r.text)
+                                                img = logo_soup.find('img', 'image')
+                                                self.logo = img['src']
+                                                print self.logo
+                                        except:
+                                                pass
                                 ad = str(ad)
                                 ad = ad.replace('<span class=\"ac\">','')
                                 ad = ad.replace('</span>','')
@@ -104,7 +113,7 @@ class Lexograd():
                                         ad = ad.split(' ')
                                         short = ad[0]
                                         for a in ad[1:]:
-                                            if len(short) < 55:
+                                            if len(short) < 70:
                                                 short += ' ' + a
                                         self.copy = short
                                         break
@@ -114,25 +123,27 @@ def index():
         
 @app.route("/submit",methods=['GET','POST'])
 def submit():
-    media=[]
-    getInstagrams(media)
-    index=0
+    urls = getInstagrams()
+    valid_lexograds = []
+    
+    while 1:
+        index = random.randint(0, len(urls) - 1)
+        temp_lex = Lexograd(urls[index])
+        temp_lex.extractTags()
+        temp_lex.getAdCopy()
+        if temp_lex.copy:
+            print temp_lex.copy
+            pick = temp_lex
+            break
 
-    lexograds=[]
-    for m in media:
-        m.extractTags()
-        m.getAdCopy()
-        if m.copy:
-            print m.copy
-            lexograds.append(m)
-
-    pick = lexograds[random.randint(0,len(lexograds)-1)] 
+    #pick = valid_lexograds[random.randint(0,len(valid_lexograds)-1)] 
     
     res = []
     res.append(pick.url)
     res.append(pick.tags)
     res.append(pick.copy)
     res.append(pick.title)
+    res.append(pick.logo)
     return json.dumps(res)
 
 if __name__ == '__main__':
