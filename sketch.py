@@ -64,9 +64,10 @@ class Lexograd():
 		for i in range(len(self.tags)):
 			url = "https://www.google.com/search?q=" + str(self.tags[i][0])
 			r = requests.get(url)
-			data = r.text
+	                print r
+                        data = r.text
 			soup = BeautifulSoup(data)
-                        ad = soup.find('span', 'ac')
+                        ad = soup.find('div', 'ads-creative')
                         if ad != None:
                                 title = ad.find_previous('cite')
                                 if title != None:
@@ -89,8 +90,8 @@ class Lexograd():
                                         except:
                                                 pass
                                 ad = str(ad)
-                                ad = ad.replace('<span class=\"ac\">','')
-                                ad = ad.replace('</span>','')
+                                ad = ad.replace('<div class=\"ads-creative\">','')
+                                ad = ad.replace('</div>','')
                                 ad = ad.replace('<b>','')
                                 ad = ad.replace('</b>','')
                                 ad = ad.replace('<br>',' ')
@@ -101,40 +102,44 @@ class Lexograd():
                                 match_exclamation = re.match(exclamation, ad)
                                 match_period = re.match(period, ad)
                                 if match_exclamation:
-                                        #print 'match excl'
+                                        print 'match excl'
                                         self.copy = match_exclamation.group(0)
                                         break
                                 elif match_period:
-                                        #print 'match period'
+                                        print 'match period'
                                         self.copy = match_period.group(0)
                                         break
                                 else:
-                                        #print 'ad split'
+                                        print 'ad split'
                                         ad = ad.split(' ')
                                         short = ad[0]
                                         for a in ad[1:]:
-                                            if len(short) < 70:
+                                            print a
+                                            if len(short) < 120:
                                                 short += ' ' + a
                                         self.copy = short
                                         break
 @app.route("/")
 def index():
-    return send_file('static/index.html')
+    return "Hello there!"
+    # return send_file('static/index.html')
         
 @app.route("/submit",methods=['GET','POST'])
 def submit():
     urls = getInstagrams()
     valid_lexograds = []
-    
+
     while 1:
         index = random.randint(0, len(urls) - 1)
         temp_lex = Lexograd(urls[index])
         temp_lex.extractTags()
         temp_lex.getAdCopy()
-        if temp_lex.copy:
+        try:
             print temp_lex.copy
             pick = temp_lex
             break
+        except AttributeError:
+            pass
 
     #pick = valid_lexograds[random.randint(0,len(valid_lexograds)-1)] 
     
@@ -147,4 +152,4 @@ def submit():
     return json.dumps(res)
 
 if __name__ == '__main__':
-        app.run(port=8080, debug=True)
+        app.run(host='0.0.0.0', debug=True)

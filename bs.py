@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 exclamation = re.compile('^(.*?)\!')
 period = re.compile('^(.*?)\.')
 
-url = "https://www.google.com/search?q=" + "art"
+url = "https://www.google.com/search?q=" + "travel"
 r = requests.get(url)
 data = r.text
 soup = BeautifulSoup(data)
@@ -21,10 +21,13 @@ if title != None:
 ad = soup.find('span', 'ac')
 print str(ad)
 
+ad = soup.find('div', 'ads-creative')
+print str(ad)
+
 if ad != None:
 	ad = str(ad)
-	ad = ad.replace('<span class=\"ac\">','')
-	ad = ad.replace('</span>','')
+	ad = ad.replace('<div class=\"ads-creative\">','')
+	ad = ad.replace('</div>','')
 	ad = ad.replace('<b>','')
 	ad = ad.replace('</b>','')
 	ad = ad.replace('<br>',' ')
